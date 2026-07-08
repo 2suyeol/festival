@@ -83,6 +83,13 @@ body{
 .row .info .meta{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:3px}
 .row .info p{font-size:13px;color:var(--ink-soft);margin-top:5px;line-height:1.45}
 .row .acts{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+.row.col{flex-direction:column;align-items:stretch;gap:0}
+.row.col .rowtop{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.urlbox{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line-strong)}
+.urlbox .klabel{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-soft);text-transform:uppercase}
+.urlbox .url{margin-top:6px;background:var(--paper);border:1.5px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--pine);word-break:break-all;line-height:1.4}
+.urlacts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.urlacts .btn{text-decoration:none;display:inline-flex;align-items:center}
 .badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;letter-spacing:.03em}
 .badge.cat{background:rgba(36,80,59,.1);color:var(--pine)}
 .badge.pin{background:var(--apricot);color:var(--pine-deep)}
@@ -195,8 +202,9 @@ body{
    ----------------------------------------------------------------- */
 window.DB = (function(){
   const KEY='festival_v2';
+  const BASE_URL='https://2suyeol.github.io/festival/';
   const DEFAULTS = {
-    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000' },
+    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000', siteBaseUrl:BASE_URL },
     booths:[
       {id:1,name:'미로 방탈출',cat:'체험',loc:'무대 왼쪽 A-1',x:14,y:34,desc:'제한 시간 안에 단서를 찾아 방을 탈출하세요. 3~4인 팀으로 참여할 수 있어요.'},
       {id:2,name:'솜사탕 가게',cat:'먹거리',loc:'푸드존 F-2',x:80,y:30,desc:'즉석에서 만드는 수제 솜사탕. 딸기·소다·오리지널 세 가지 맛이 있어요.'},
@@ -211,20 +219,32 @@ window.DB = (function(){
     ],
     ratingsAgg:{1:{sum:37,count:9},2:{sum:42,count:10},3:{sum:33,count:7},4:{sum:28,count:6},5:{sum:44,count:9},6:{sum:19,count:5}}
   };
-  function fresh(){ return {config:{...DEFAULTS.config},booths:DEFAULTS.booths.map(b=>({...b})),anns:DEFAULTS.anns.map(a=>({...a})),ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),myRatings:{},stamps:{},coupon:{redeemed:false},issuedCodes:{},admin:false}; }
-  function load(){ let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(!s||!s.config){ s=fresh(); save(s); } return s; }
-  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
-  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
-  function mkCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<5;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; }
+  const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function mkCode(){ let r=''; for(let i=0;i<5;i++) r+=CH[Math.floor(Math.random()*CH.length)]; return r; }
+  function mkKey(){ let r=''; for(let i=0;i<4;i++) r+=CH[Math.floor(Math.random()*CH.length)]; return r; }
   function nowHM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
+  function fresh(){ return {config:{...DEFAULTS.config},booths:DEFAULTS.booths.map(b=>({...b,key:mkKey()})),anns:DEFAULTS.anns.map(a=>({...a})),ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),myRatings:{},stamps:{},coupon:{redeemed:false},issuedCodes:{},admin:false}; }
+  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
+  function load(){
+    let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+    if(!s||!s.config){ s=fresh(); save(s); return s; }
+    let ch=false;
+    if(!s.config.siteBaseUrl){ s.config.siteBaseUrl=BASE_URL; ch=true; }
+    s.booths.forEach(b=>{ if(!b.key){ b.key=mkKey(); ch=true; } });
+    if(ch) save(s);
+    return s;
+  }
   return {
     config(){ return load().config; },
     setConfig(patch){ const s=load(); Object.assign(s.config,patch); save(s); },
     booths(){ return load().booths; },
     booth(id){ return load().booths.find(b=>b.id===Number(id)); },
-    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d}); save(s); return id; },
+    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d,key:(d&&d.key)||mkKey()}); save(s); return id; },
     updateBooth(id,patch){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b) Object.assign(b,patch); save(s); },
     deleteBooth(id){ const s=load(); s.booths=s.booths.filter(b=>b.id!==Number(id)); delete s.ratingsAgg[id]; delete s.stamps[id]; delete s.myRatings[id]; save(s); },
+    regenBoothKey(id){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b){ b.key=mkKey(); save(s); return b.key; } return null; },
+    cardUrl(id){ const s=load(); const b=s.booths.find(x=>x.id===Number(id)); if(!b) return ''; return (s.config.siteBaseUrl||BASE_URL)+'?booth='+id+'&k='+b.key; },
     announcements(){ return [...load().anns].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)); },
     addAnnouncement(d){ const s=load(); const id=nextId(s.anns); s.anns.unshift({id,ts:nowHM(),pinned:false,...d}); save(s); return id; },
     deleteAnnouncement(id){ const s=load(); s.anns=s.anns.filter(a=>a.id!==Number(id)); save(s); },
@@ -346,15 +366,26 @@ function renderBooths(){
   const bl=$('#booth-list');
   bl.innerHTML = list.map(x=>{
     const r=DB.ratingAvg(x.id);
-    return `<div class="row">
-      <div class="info">
-        <h4><span class="badge cat">${esc(x.cat)}</span>${esc(x.name)}</h4>
-        <div class="meta">#${String(x.id).padStart(2,'0')} · 📍${esc(x.loc||'-')} · ★${r.count?r.avg.toFixed(1):'–'} (${r.count})</div>
-        <p>${esc(x.desc||'')}</p>
+    return `<div class="row col">
+      <div class="rowtop">
+        <div class="info">
+          <h4><span class="badge cat">${esc(x.cat)}</span>${esc(x.name)}</h4>
+          <div class="meta">#${String(x.id).padStart(2,'0')} · 📍${esc(x.loc||'-')} · ★${r.count?r.avg.toFixed(1):'–'} (${r.count})</div>
+          <p>${esc(x.desc||'')}</p>
+        </div>
+        <div class="acts">
+          <button class="btn btn-ghost btn-sm" data-edit="${x.id}">수정</button>
+          <button class="btn btn-danger btn-sm" data-del="${x.id}">삭제</button>
+        </div>
       </div>
-      <div class="acts">
-        <button class="btn btn-ghost btn-sm" data-edit="${x.id}">수정</button>
-        <button class="btn btn-danger btn-sm" data-del="${x.id}">삭제</button>
+      <div class="urlbox">
+        <div class="urltop"><span class="klabel">이 카드에 쓸 URL · KEY ${esc(x.key||'')}</span></div>
+        <div class="url mono">${esc(DB.cardUrl(x.id))}</div>
+        <div class="urlacts">
+          <button class="btn btn-ghost btn-sm" data-copy="${x.id}">URL 복사</button>
+          <a class="btn btn-ghost btn-sm" href="${esc(DB.cardUrl(x.id))}" target="_blank">태그 테스트</a>
+          <button class="btn btn-ghost btn-sm" data-regen="${x.id}">키 재발급</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -363,6 +394,17 @@ function renderBooths(){
     const b2=DB.booth(btn.dataset.del);
     if(confirm(`'${b2.name}' 부스를 삭제할까요? 관련 별점·도장 기록도 사라져요.`)){ DB.deleteBooth(btn.dataset.del); if(editingBooth==Number(btn.dataset.del)) editingBooth=null; renderBooths(); }
   });
+  bl.querySelectorAll('[data-copy]').forEach(btn=> btn.onclick=()=> copyText(DB.cardUrl(btn.dataset.copy)));
+  bl.querySelectorAll('[data-regen]').forEach(btn=> btn.onclick=()=>{
+    if(confirm('키를 새로 만들면 이 부스의 기존 카드는 더 이상 도장이 안 찍혀요. 새 URL로 카드를 다시 구워야 해요. 재발급할까요?')){ DB.regenBoothKey(btn.dataset.regen); renderBooths(); }
+  });
+}
+
+/* URL 복사 (클립보드 안 되면 수동 선택용 프롬프트) */
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(()=>alert('URL을 복사했어요.')).catch(()=>prompt('아래 URL을 복사하세요', t));
+  } else { prompt('아래 URL을 복사하세요', t); }
 }
 
 /* ================= 공지 ================= */
@@ -455,6 +497,7 @@ function renderSettings(){
     <div class="section-title">축제 설정</div>
     <div class="card">
       <div class="field"><label>축제 이름</label><input id="s-name" value="${esc(c.festivalName)}" /></div>
+      <div class="field"><label>사이트 주소 (카드 URL 기준)</label><input id="s-base" value="${esc(c.siteBaseUrl||'')}" placeholder="https://2suyeol.github.io/festival/" /></div>
       <div class="field"><label>교환권 조건 (도장 개수)</label><input id="s-goal" type="number" min="1" max="20" value="${c.couponGoal}" /></div>
       <div class="field"><label>관리자 비밀번호</label><input id="s-pw" value="${esc(c.adminPw)}" /></div>
       <button class="btn btn-primary btn-block" id="save-settings">저장</button>
@@ -468,7 +511,8 @@ function renderSettings(){
   $('#save-settings').onclick=()=>{
     const goal=Math.max(1,Math.min(20,Number($('#s-goal').value)||4));
     const pw=$('#s-pw').value.trim()||'0000';
-    DB.setConfig({festivalName:$('#s-name').value.trim()||'우리 축제', couponGoal:goal, adminPw:pw});
+    let base=$('#s-base').value.trim()||'https://2suyeol.github.io/festival/';
+    DB.setConfig({festivalName:$('#s-name').value.trim()||'우리 축제', couponGoal:goal, adminPw:pw, siteBaseUrl:base});
     $('#hdr-name').textContent=DB.config().festivalName;
     alert('저장했어요.');
   };

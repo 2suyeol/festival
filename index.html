@@ -268,6 +268,14 @@ body{
   display:flex;align-items:center;justify-content:center;transform:rotate(-9deg);
   font-family:var(--mono);font-weight:600;font-size:13px;text-align:center;line-height:1.2;
 }
+@keyframes sealPop{0%{transform:rotate(-9deg) scale(1.8);opacity:0}60%{opacity:1}100%{transform:rotate(-9deg) scale(1);opacity:1}}
+.stamped-badge .big.just{animation:sealPop .4s cubic-bezier(.2,1.2,.3,1)}
+.stamp-locked{
+  display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;
+  color:var(--ink-soft);font-size:13.5px;line-height:1.55;padding:6px 0;
+}
+.stamp-locked .lk-ic{font-size:34px;color:var(--line-strong);line-height:1}
+.stamp-locked b{color:var(--pine)}
 
 /* ============ 데모 배지 + 푸터 ============ */
 .demo-flag{
@@ -277,6 +285,9 @@ body{
 .demo-flag span{background:rgba(228,155,87,.18);padding:3px 9px;border-radius:6px}
 .reset{background:none;border:none;color:var(--ink-soft);font-family:var(--mono);
   font-size:11px;text-decoration:underline;cursor:pointer;margin-top:8px}
+.site-foot{margin:30px 0 6px;padding-top:16px;border-top:1px solid var(--line-strong);text-align:center}
+.site-foot a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-soft);text-decoration:none}
+.site-foot a:hover{color:var(--pine)}
 
 .hidden{display:none !important}
 
@@ -351,6 +362,10 @@ body{
       <div><button class="reset" id="reset-btn">진행 초기화</button></div>
     </div>
 
+    <footer class="site-foot">
+      <a href="admin.html">관리자</a>
+    </footer>
+
   </div>
 </div>
 
@@ -370,7 +385,7 @@ body{
     <!-- 도장 찍기 -->
     <div class="panel">
       <h3>스탬프</h3>
-      <div class="hint">이 부스를 방문했다면 도장을 받으세요.</div>
+      <div class="hint">부스의 NFC 카드를 폰에 태그하면 도장이 찍혀요.</div>
       <div id="stamp-action"></div>
     </div>
 
@@ -401,9 +416,9 @@ body{
    ----------------------------------------------------------------- */
 window.DB = (function(){
   const KEY='festival_v2';
-
+  const BASE_URL='https://2suyeol.github.io/festival/';
   const DEFAULTS = {
-    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000' },
+    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000', siteBaseUrl:BASE_URL },
     booths:[
       {id:1,name:'미로 방탈출',cat:'체험',loc:'무대 왼쪽 A-1',x:14,y:34,desc:'제한 시간 안에 단서를 찾아 방을 탈출하세요. 3~4인 팀으로 참여할 수 있어요.'},
       {id:2,name:'솜사탕 가게',cat:'먹거리',loc:'푸드존 F-2',x:80,y:30,desc:'즉석에서 만드는 수제 솜사탕. 딸기·소다·오리지널 세 가지 맛이 있어요.'},
@@ -418,66 +433,54 @@ window.DB = (function(){
     ],
     ratingsAgg:{1:{sum:37,count:9},2:{sum:42,count:10},3:{sum:33,count:7},4:{sum:28,count:6},5:{sum:44,count:9},6:{sum:19,count:5}}
   };
-
-  function fresh(){
-    return {
-      config:{...DEFAULTS.config},
-      booths:DEFAULTS.booths.map(b=>({...b})),
-      anns:DEFAULTS.anns.map(a=>({...a})),
-      ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),
-      myRatings:{}, stamps:{}, coupon:{redeemed:false},
-      issuedCodes:{}, admin:false
-    };
-  }
-  function load(){ let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(!s||!s.config){ s=fresh(); save(s); } return s; }
-  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
-  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
-  function mkCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<5;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; }
+  const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  function mkCode(){ let r=''; for(let i=0;i<5;i++) r+=CH[Math.floor(Math.random()*CH.length)]; return r; }
+  function mkKey(){ let r=''; for(let i=0;i<4;i++) r+=CH[Math.floor(Math.random()*CH.length)]; return r; }
   function nowHM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-
+  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
+  function fresh(){ return {config:{...DEFAULTS.config},booths:DEFAULTS.booths.map(b=>({...b,key:mkKey()})),anns:DEFAULTS.anns.map(a=>({...a})),ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),myRatings:{},stamps:{},coupon:{redeemed:false},issuedCodes:{},admin:false}; }
+  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
+  function load(){
+    let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+    if(!s||!s.config){ s=fresh(); save(s); return s; }
+    let ch=false;
+    if(!s.config.siteBaseUrl){ s.config.siteBaseUrl=BASE_URL; ch=true; }
+    s.booths.forEach(b=>{ if(!b.key){ b.key=mkKey(); ch=true; } });
+    if(ch) save(s);
+    return s;
+  }
   return {
-    /* 설정 */
     config(){ return load().config; },
     setConfig(patch){ const s=load(); Object.assign(s.config,patch); save(s); },
-
-    /* 부스 */
     booths(){ return load().booths; },
     booth(id){ return load().booths.find(b=>b.id===Number(id)); },
-    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d}); save(s); return id; },
+    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d,key:(d&&d.key)||mkKey()}); save(s); return id; },
     updateBooth(id,patch){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b) Object.assign(b,patch); save(s); },
     deleteBooth(id){ const s=load(); s.booths=s.booths.filter(b=>b.id!==Number(id)); delete s.ratingsAgg[id]; delete s.stamps[id]; delete s.myRatings[id]; save(s); },
-
-    /* 공지 */
+    regenBoothKey(id){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b){ b.key=mkKey(); save(s); return b.key; } return null; },
+    cardUrl(id){ const s=load(); const b=s.booths.find(x=>x.id===Number(id)); if(!b) return ''; return (s.config.siteBaseUrl||BASE_URL)+'?booth='+id+'&k='+b.key; },
     announcements(){ return [...load().anns].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)); },
     addAnnouncement(d){ const s=load(); const id=nextId(s.anns); s.anns.unshift({id,ts:nowHM(),pinned:false,...d}); save(s); return id; },
     deleteAnnouncement(id){ const s=load(); s.anns=s.anns.filter(a=>a.id!==Number(id)); save(s); },
     togglePin(id){ const s=load(); const a=s.anns.find(a=>a.id===Number(id)); if(a) a.pinned=!a.pinned; save(s); },
-
-    /* 스탬프 */
     stamps(){ return load().stamps; },
     stampCount(){ return Object.keys(load().stamps).length; },
     hasStamp(id){ return !!load().stamps[id]; },
     addStamp(id){ const s=load(); s.stamps[id]=true; save(s); },
-
-    /* 별점 */
     myRating(id){ return load().myRatings[id]||0; },
     ratingAvg(id){ const a=load().ratingsAgg[id]||{sum:0,count:0}; return {avg:a.count?a.sum/a.count:0,count:a.count}; },
     setRating(id,stars){ const s=load(); const prev=s.myRatings[id]||0; if(!s.ratingsAgg[id]) s.ratingsAgg[id]={sum:0,count:0}; const agg=s.ratingsAgg[id]; if(prev){agg.sum+=stars-prev;} else {agg.sum+=stars;agg.count+=1;} s.myRatings[id]=stars; save(s); },
     ratingStats(){ const s=load(); return s.booths.map(b=>{ const a=s.ratingsAgg[b.id]||{sum:0,count:0}; return {id:b.id,name:b.name,avg:a.count?a.sum/a.count:0,count:a.count}; }); },
-
-    /* 교환권 */
     couponUnlocked(){ return this.stampCount()>=load().config.couponGoal; },
     coupon(){ return load().coupon; },
     couponCode(){ const s=load(); if(!s.coupon.code){ s.coupon.code=mkCode(); save(s);} return s.coupon.code; },
     redeemCoupon(){ const s=load(); if(!s.coupon.code) s.coupon.code=mkCode(); s.coupon.redeemed=true; s.issuedCodes[s.coupon.code]={used:false,ts:nowHM()}; save(s); return s.coupon.code; },
     verifyCoupon(c){ const rec=load().issuedCodes[(c||'').toUpperCase().trim()]; return rec?{found:true,used:rec.used,ts:rec.ts}:{found:false}; },
     useCoupon(c){ const s=load(); const rec=s.issuedCodes[(c||'').toUpperCase().trim()]; if(rec){ rec.used=true; save(s);} },
-
-    /* 관리자 인증 (데모용 비밀번호) */
+    issuedCodes(){ return load().issuedCodes; },
     login(pw){ const s=load(); if(pw===s.config.adminPw){ s.admin=true; save(s); return true;} return false; },
     logout(){ const s=load(); s.admin=false; save(s); },
     isAdmin(){ return !!load().admin; },
-
     reset(){ localStorage.removeItem(KEY); }
   };
 })();
@@ -614,20 +617,25 @@ function renderBooth(id){
   document.getElementById('b-loc').textContent  = '📍 ' + b.loc;
   document.getElementById('b-desc').textContent = b.desc;
 
-  /* 도장 찍기 */
+  /* 도장 — NFC 카드를 태그해야만 찍힘 (?k=키 일치 시 자동 획득) */
+  const scanKey = new URLSearchParams(location.search).get('k');
+  const validScan = !!(b.key && scanKey === b.key);
   const sa = document.getElementById('stamp-action');
+  let justStamped = false;
+  if(!DB.hasStamp(b.id) && validScan){ DB.addStamp(b.id); justStamped = true; }
+
   if(DB.hasStamp(b.id)){
     sa.innerHTML = `
       <div class="stamped-badge">
-        <div class="big">도장<br>완료</div>
-        <div class="muted mono" style="font-size:12px">이 부스는 이미 방문했어요</div>
+        <div class="big${justStamped?' just':''}">도장<br>완료</div>
+        <div class="muted mono" style="font-size:12px">${justStamped?'도장을 받았어요!':'이 부스는 이미 방문했어요'}</div>
       </div>`;
   } else {
-    sa.innerHTML = `<button class="btn btn-primary" id="stamp-btn">도장 받기</button>`;
-    document.getElementById('stamp-btn').onclick = ()=>{
-      DB.addStamp(b.id);
-      renderBooth(id);
-    };
+    sa.innerHTML = `
+      <div class="stamp-locked">
+        <div class="lk-ic">◎</div>
+        <div>이 부스의 <b>NFC 카드를 폰에 태그</b>하면<br>도장을 받을 수 있어요.</div>
+      </div>`;
   }
 
   /* 별점 */
