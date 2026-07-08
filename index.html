@@ -399,6 +399,10 @@ body{
   </div>
 </div>
 
+<!-- Firebase (compat SDK, 빌드 툴 없이 CDN) -->
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
 <script>
 /* =====================================================================
    데이터 계층 (DB)
@@ -415,10 +419,28 @@ body{
        · 이 기기 데이터 : myRatings / stamps / coupon
    ----------------------------------------------------------------- */
 window.DB = (function(){
-  const KEY='festival_v2';
-  const BASE_URL='https://2suyeol.github.io/festival/';
+  /* ============================================================
+     ▼▼▼  여기 두 곳만 채우면 실제 공유(Firebase) 모드로 전환  ▼▼▼
+     - Firebase 콘솔 > 프로젝트 설정 > 내 앱 의 firebaseConfig 붙여넣기
+     - ADMIN_EMAIL: 콘솔에서 만든 관리자 계정 이메일 (보안 규칙과 동일해야 함)
+     비워두면(PASTE 그대로면) 데모 모드로 동작함.
+     ============================================================ */
+  const firebaseConfig = {
+    apiKey: "AIzaSyBvOR4_b9HRubWZMcL6Ke1d7C470w0BnDo",
+    authDomain: "festival-de913.firebaseapp.com",
+    projectId: "festival-de913",
+    storageBucket: "festival-de913.firebasestorage.app",
+    messagingSenderId: "128665782391",
+    appId: "1:128665782391:web:1ff3dd74f6633d0309de72",
+    measurementId: "G-ENL2M3SN62"
+  };
+  const ADMIN_EMAIL = "admin@festival.com";
+  /* ============================================================ */
+
+  const USE_FIRE = !String(firebaseConfig.apiKey).startsWith("PASTE") && typeof firebase !== "undefined";
+
   const DEFAULTS = {
-    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000', siteBaseUrl:BASE_URL },
+    config:{ festivalName:'가을 한마당', couponGoal:4, siteBaseUrl:'https://2suyeol.github.io/festival/' },
     booths:[
       {id:1,name:'미로 방탈출',cat:'체험',loc:'무대 왼쪽 A-1',x:14,y:34,desc:'제한 시간 안에 단서를 찾아 방을 탈출하세요. 3~4인 팀으로 참여할 수 있어요.'},
       {id:2,name:'솜사탕 가게',cat:'먹거리',loc:'푸드존 F-2',x:80,y:30,desc:'즉석에서 만드는 수제 솜사탕. 딸기·소다·오리지널 세 가지 맛이 있어요.'},
@@ -433,55 +455,92 @@ window.DB = (function(){
     ],
     ratingsAgg:{1:{sum:37,count:9},2:{sum:42,count:10},3:{sum:33,count:7},4:{sum:28,count:6},5:{sum:44,count:9},6:{sum:19,count:5}}
   };
+
   const CH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  function mkCode(){ let r=''; for(let i=0;i<5;i++) r+=CH[Math.floor(Math.random()*CH.length)]; return r; }
-  function mkKey(){ let r=''; for(let i=0;i<4;i++) r+=CH[Math.floor(Math.random()*CH.length)]; return r; }
-  function nowHM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
-  function fresh(){ return {config:{...DEFAULTS.config},booths:DEFAULTS.booths.map(b=>({...b,key:mkKey()})),anns:DEFAULTS.anns.map(a=>({...a})),ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),myRatings:{},stamps:{},coupon:{redeemed:false},issuedCodes:{},admin:false}; }
-  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
-  function load(){
-    let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-    if(!s||!s.config){ s=fresh(); save(s); return s; }
-    let ch=false;
-    if(!s.config.siteBaseUrl){ s.config.siteBaseUrl=BASE_URL; ch=true; }
-    s.booths.forEach(b=>{ if(!b.key){ b.key=mkKey(); ch=true; } });
-    if(ch) save(s);
-    return s;
+  const mkCode=()=>{let r='';for(let i=0;i<5;i++)r+=CH[Math.floor(Math.random()*CH.length)];return r;};
+  const mkKey =()=>{let r='';for(let i=0;i<4;i++)r+=CH[Math.floor(Math.random()*CH.length)];return r;};
+  const nowHM =()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+  const nextId=(a)=>a.reduce((m,x)=>Math.max(m,x.id),0)+1;
+
+  const cache={ config:{...DEFAULTS.config}, booths:[], anns:[], ratingsAgg:{}, issuedCodes:{}, stamps:{}, myRatings:{}, coupon:{redeemed:false} };
+  const subs=[]; let demoAdmin=false;
+  function notify(){ subs.forEach(f=>{try{f();}catch(e){console.error(e);}}); }
+
+  let fdb=null, fauth=null, uid=null;
+  const userRef=()=>fdb.doc('users/'+uid);
+  const INC=(n)=>firebase.firestore.FieldValue.increment(n);
+
+  function initFire(){
+    firebase.initializeApp(firebaseConfig);
+    fdb=firebase.firestore(); fauth=firebase.auth();
+    fdb.collection('booths').onSnapshot(s=>{ cache.booths=s.docs.map(d=>d.data()).sort((a,b)=>a.id-b.id); notify(); }, e=>console.error('booths',e));
+    fdb.collection('announcements').onSnapshot(s=>{ cache.anns=s.docs.map(d=>d.data()); notify(); }, e=>console.error('anns',e));
+    fdb.collection('ratings').onSnapshot(s=>{ const o={}; s.forEach(d=>o[d.id]=d.data()); cache.ratingsAgg=o; notify(); }, e=>console.error('ratings',e));
+    fdb.collection('coupons').onSnapshot(s=>{ const o={}; s.forEach(d=>o[d.id]=d.data()); cache.issuedCodes=o; notify(); }, e=>console.error('coupons',e));
+    fdb.doc('meta/config').onSnapshot(d=>{ if(d.exists) cache.config={...DEFAULTS.config,...d.data()}; notify(); }, e=>console.error('config',e));
+    fauth.onAuthStateChanged(u=>{
+      if(u){ uid=u.uid; fdb.doc('users/'+uid).onSnapshot(d=>{ const v=(d&&d.data())||{}; cache.stamps=v.stamps||{}; cache.myRatings=v.myRatings||{}; cache.coupon=v.coupon||{redeemed:false}; notify(); }); }
+      else { uid=null; fauth.signInAnonymously().catch(e=>console.error('anon',e)); }
+      notify();
+    });
   }
+
+  if(USE_FIRE){ try{ initFire(); }catch(e){ console.error('Firebase 초기화 실패:',e); } }
+  else {
+    cache.booths=DEFAULTS.booths.map(b=>({...b,key:mkKey()}));
+    cache.anns=DEFAULTS.anns.map(a=>({...a}));
+    cache.ratingsAgg=JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg));
+    Promise.resolve().then(notify);
+  }
+
   return {
-    config(){ return load().config; },
-    setConfig(patch){ const s=load(); Object.assign(s.config,patch); save(s); },
-    booths(){ return load().booths; },
-    booth(id){ return load().booths.find(b=>b.id===Number(id)); },
-    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d,key:(d&&d.key)||mkKey()}); save(s); return id; },
-    updateBooth(id,patch){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b) Object.assign(b,patch); save(s); },
-    deleteBooth(id){ const s=load(); s.booths=s.booths.filter(b=>b.id!==Number(id)); delete s.ratingsAgg[id]; delete s.stamps[id]; delete s.myRatings[id]; save(s); },
-    regenBoothKey(id){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b){ b.key=mkKey(); save(s); return b.key; } return null; },
-    cardUrl(id){ const s=load(); const b=s.booths.find(x=>x.id===Number(id)); if(!b) return ''; return (s.config.siteBaseUrl||BASE_URL)+'?booth='+id+'&k='+b.key; },
-    announcements(){ return [...load().anns].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)); },
-    addAnnouncement(d){ const s=load(); const id=nextId(s.anns); s.anns.unshift({id,ts:nowHM(),pinned:false,...d}); save(s); return id; },
-    deleteAnnouncement(id){ const s=load(); s.anns=s.anns.filter(a=>a.id!==Number(id)); save(s); },
-    togglePin(id){ const s=load(); const a=s.anns.find(a=>a.id===Number(id)); if(a) a.pinned=!a.pinned; save(s); },
-    stamps(){ return load().stamps; },
-    stampCount(){ return Object.keys(load().stamps).length; },
-    hasStamp(id){ return !!load().stamps[id]; },
-    addStamp(id){ const s=load(); s.stamps[id]=true; save(s); },
-    myRating(id){ return load().myRatings[id]||0; },
-    ratingAvg(id){ const a=load().ratingsAgg[id]||{sum:0,count:0}; return {avg:a.count?a.sum/a.count:0,count:a.count}; },
-    setRating(id,stars){ const s=load(); const prev=s.myRatings[id]||0; if(!s.ratingsAgg[id]) s.ratingsAgg[id]={sum:0,count:0}; const agg=s.ratingsAgg[id]; if(prev){agg.sum+=stars-prev;} else {agg.sum+=stars;agg.count+=1;} s.myRatings[id]=stars; save(s); },
-    ratingStats(){ const s=load(); return s.booths.map(b=>{ const a=s.ratingsAgg[b.id]||{sum:0,count:0}; return {id:b.id,name:b.name,avg:a.count?a.sum/a.count:0,count:a.count}; }); },
-    couponUnlocked(){ return this.stampCount()>=load().config.couponGoal; },
-    coupon(){ return load().coupon; },
-    couponCode(){ const s=load(); if(!s.coupon.code){ s.coupon.code=mkCode(); save(s);} return s.coupon.code; },
-    redeemCoupon(){ const s=load(); if(!s.coupon.code) s.coupon.code=mkCode(); s.coupon.redeemed=true; s.issuedCodes[s.coupon.code]={used:false,ts:nowHM()}; save(s); return s.coupon.code; },
-    verifyCoupon(c){ const rec=load().issuedCodes[(c||'').toUpperCase().trim()]; return rec?{found:true,used:rec.used,ts:rec.ts}:{found:false}; },
-    useCoupon(c){ const s=load(); const rec=s.issuedCodes[(c||'').toUpperCase().trim()]; if(rec){ rec.used=true; save(s);} },
-    issuedCodes(){ return load().issuedCodes; },
-    login(pw){ const s=load(); if(pw===s.config.adminPw){ s.admin=true; save(s); return true;} return false; },
-    logout(){ const s=load(); s.admin=false; save(s); },
-    isAdmin(){ return !!load().admin; },
-    reset(){ localStorage.removeItem(KEY); }
+    mode(){ return USE_FIRE?'fire':'demo'; },
+    subscribe(cb){ subs.push(cb); },
+
+    config(){ return cache.config; },
+    setConfig(patch){ Object.assign(cache.config,patch); notify(); if(USE_FIRE) fdb.doc('meta/config').set(cache.config,{merge:true}).catch(e=>console.error(e)); },
+
+    booths(){ return cache.booths; },
+    booth(id){ return cache.booths.find(b=>b.id===Number(id)); },
+    addBooth(d){ const id=nextId(cache.booths); const b={id,x:50,y:50,...d,key:(d&&d.key)||mkKey()}; cache.booths=[...cache.booths,b].sort((a,b)=>a.id-b.id); notify(); if(USE_FIRE) fdb.doc('booths/'+id).set(b).catch(e=>console.error(e)); return id; },
+    updateBooth(id,patch){ id=Number(id); const b=cache.booths.find(x=>x.id===id); if(b) Object.assign(b,patch); notify(); if(USE_FIRE) fdb.doc('booths/'+id).set(patch,{merge:true}).catch(e=>console.error(e)); },
+    deleteBooth(id){ id=Number(id); cache.booths=cache.booths.filter(b=>b.id!==id); delete cache.ratingsAgg[id]; notify(); if(USE_FIRE){ fdb.doc('booths/'+id).delete().catch(e=>console.error(e)); fdb.doc('ratings/'+id).delete().catch(()=>{}); } },
+    regenBoothKey(id){ const k=mkKey(); this.updateBooth(id,{key:k}); return k; },
+    cardUrl(id){ const b=this.booth(id); if(!b) return ''; return (cache.config.siteBaseUrl||'')+'?booth='+id+'&k='+b.key; },
+
+    announcements(){ return [...cache.anns].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)); },
+    addAnnouncement(d){ const id=nextId(cache.anns); const a={id,ts:nowHM(),pinned:false,...d}; cache.anns=[a,...cache.anns]; notify(); if(USE_FIRE) fdb.doc('announcements/'+id).set(a).catch(e=>console.error(e)); return id; },
+    deleteAnnouncement(id){ id=Number(id); cache.anns=cache.anns.filter(a=>a.id!==id); notify(); if(USE_FIRE) fdb.doc('announcements/'+id).delete().catch(e=>console.error(e)); },
+    togglePin(id){ id=Number(id); const a=cache.anns.find(x=>x.id===id); if(a){ a.pinned=!a.pinned; notify(); if(USE_FIRE) fdb.doc('announcements/'+id).set({pinned:a.pinned},{merge:true}).catch(e=>console.error(e)); } },
+
+    stamps(){ return cache.stamps; },
+    stampCount(){ return Object.keys(cache.stamps).length; },
+    hasStamp(id){ return !!cache.stamps[id]; },
+    addStamp(id){ if(cache.stamps[id]) return; cache.stamps[id]=true; notify(); if(USE_FIRE&&uid) userRef().set({stamps:{[id]:true}},{merge:true}).catch(e=>console.error(e)); },
+
+    myRating(id){ return cache.myRatings[id]||0; },
+    ratingAvg(id){ const a=cache.ratingsAgg[id]||{sum:0,count:0}; return {avg:a.count?a.sum/a.count:0,count:a.count}; },
+    setRating(id,stars){ id=Number(id); const prev=cache.myRatings[id]||0; if(!cache.ratingsAgg[id]) cache.ratingsAgg[id]={sum:0,count:0}; const agg=cache.ratingsAgg[id]; if(prev) agg.sum+=stars-prev; else {agg.sum+=stars;agg.count+=1;} cache.myRatings[id]=stars; notify(); if(USE_FIRE&&uid){ fdb.doc('ratings/'+id).set({sum:INC(prev?stars-prev:stars),count:INC(prev?0:1)},{merge:true}).catch(e=>console.error(e)); userRef().set({myRatings:{[id]:stars}},{merge:true}).catch(e=>console.error(e)); } },
+    ratingStats(){ return cache.booths.map(b=>{ const a=cache.ratingsAgg[b.id]||{sum:0,count:0}; return {id:b.id,name:b.name,avg:a.count?a.sum/a.count:0,count:a.count}; }); },
+
+    couponUnlocked(){ return this.stampCount()>=(cache.config.couponGoal||4); },
+    coupon(){ return cache.coupon; },
+    couponCode(){ if(!cache.coupon.code){ cache.coupon.code=mkCode(); notify(); if(USE_FIRE&&uid) userRef().set({coupon:cache.coupon},{merge:true}).catch(()=>{}); } return cache.coupon.code; },
+    redeemCoupon(){ if(!cache.coupon.code) cache.coupon.code=mkCode(); cache.coupon.redeemed=true; const code=cache.coupon.code; cache.issuedCodes[code]={used:false,ts:nowHM()}; notify(); if(USE_FIRE&&uid){ userRef().set({coupon:cache.coupon},{merge:true}).catch(e=>console.error(e)); fdb.doc('coupons/'+code).set({used:false,ts:nowHM()}).catch(e=>console.error(e)); } return code; },
+    verifyCoupon(c){ const rec=cache.issuedCodes[(c||'').toUpperCase().trim()]; return rec?{found:true,used:rec.used,ts:rec.ts}:{found:false}; },
+    useCoupon(c){ c=(c||'').toUpperCase().trim(); const rec=cache.issuedCodes[c]; if(rec){ rec.used=true; notify(); if(USE_FIRE) fdb.doc('coupons/'+c).set({used:true},{merge:true}).catch(e=>console.error(e)); } },
+    issuedCodes(){ return cache.issuedCodes; },
+
+    adminLogin(email,pw){
+      if(USE_FIRE){ return fauth.signInWithEmailAndPassword(email,pw).then(cred=>{ if(cred.user.email===ADMIN_EMAIL) return true; return fauth.signOut().then(()=>false); }); }
+      demoAdmin=(pw==='0000'); return Promise.resolve(demoAdmin);
+    },
+    adminLogout(){ if(USE_FIRE&&fauth) fauth.signOut(); demoAdmin=false; },
+    isAdmin(){ if(USE_FIRE) return !!(fauth&&fauth.currentUser&&fauth.currentUser.email===ADMIN_EMAIL); return demoAdmin; },
+    onAdminState(cb){ if(USE_FIRE&&fauth) fauth.onAuthStateChanged(()=>cb(this.isAdmin())); },
+
+    seedDefaults(){ if(!USE_FIRE) return; DEFAULTS.booths.forEach(b=>fdb.doc('booths/'+b.id).set({...b,key:mkKey()})); DEFAULTS.anns.forEach(a=>fdb.doc('announcements/'+a.id).set(a)); fdb.doc('meta/config').set(cache.config,{merge:true}); Object.entries(DEFAULTS.ratingsAgg).forEach(([id,v])=>fdb.doc('ratings/'+id).set(v)); },
+    reset(){ if(!USE_FIRE){ cache.stamps={}; cache.myRatings={}; cache.coupon={redeemed:false}; notify(); } }
   };
 })();
 
@@ -690,7 +749,17 @@ document.getElementById('reset-btn').onclick = ()=>{
   if(confirm('스탬프·별점·교환권 진행을 모두 초기화할까요?')){ DB.reset(); render(); }
 };
 
+/* 모드 표시 (데모/실시간) */
+(function(){
+  const flag=document.querySelector('.demo-flag span');
+  const reset=document.getElementById('reset-btn');
+  if(flag && DB.mode()==='fire'){ flag.textContent='실시간 공유 모드 · Firebase 연결됨'; if(reset) reset.style.display='none'; }
+})();
+
+/* 실시간 데이터가 도착하면 다시 그림 */
+DB.subscribe(render);
 render();
+
 </script>
 </body>
 </html>
