@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>가을 한마당 · 축제 패스</title>
+
+<!-- 폰트: Pretendard(본문) + IBM Plex Mono(라벨/숫자) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ============ 디자인 토큰 ============ */
+:root{
+  --paper:#F4EDDC;
+  --card:#FBF6EA;
+  --ink:#221E18;
+  --ink-soft:#6A5E4E;
+  --pine:#24503B;
+  --pine-deep:#173424;
+  --apricot:#E49B57;
+  --stamp:#B5432E;
+  --line:#DCceb0;
+  --line-strong:#C7B790;
+
+  --sans:'Pretendard','Pretendard Variable',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+
+  --r:16px;
+  --shadow:0 1px 0 rgba(0,0,0,.04), 0 8px 24px -18px rgba(35,30,24,.5);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);
+  color:var(--ink);
+  background:var(--paper);
+  /* 종이 질감: 아주 옅은 점 텍스처 */
+  background-image:radial-gradient(rgba(120,100,70,.05) 1px, transparent 1px);
+  background-size:18px 18px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:40px;
+}
+
+.wrap{max-width:520px;margin:0 auto;padding:0 18px}
+
+/* ============ 공통 라벨/타입 ============ */
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--pine);
+}
+.mono{font-family:var(--mono)}
+.muted{color:var(--ink-soft)}
+
+/* ============ 상단바 ============ */
+.topbar{
+  padding:22px 0 14px;
+  border-bottom:1.5px solid var(--line-strong);
+}
+.topbar .eyebrow{display:flex;justify-content:space-between;align-items:center}
+.topbar h1{
+  font-size:34px;
+  font-weight:800;
+  letter-spacing:-.02em;
+  line-height:1.05;
+  margin-top:8px;
+}
+.topbar h1 em{font-style:normal;color:var(--pine)}
+.clock{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.05em}
+
+/* ============ 섹션 헤더 ============ */
+.section{margin-top:30px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.section-head h2{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.section-head .count{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+
+/* ============ 공지 ============ */
+.notice{
+  background:var(--pine);
+  color:#F4EDDC;
+  border-radius:var(--r);
+  padding:16px 18px;
+  box-shadow:var(--shadow);
+}
+.notice .eyebrow{color:var(--apricot)}
+.notice-item{padding:10px 0;border-top:1px dashed rgba(244,237,220,.28)}
+.notice-item:first-of-type{border-top:none;padding-top:8px}
+.notice-item h3{font-size:15px;font-weight:600;display:flex;gap:8px;align-items:center}
+.notice-item .pin{font-size:11px;font-family:var(--mono);background:var(--apricot);color:var(--pine-deep);padding:1px 6px;border-radius:6px;font-weight:600}
+.notice-item p{font-size:13.5px;color:rgba(244,237,220,.82);margin-top:3px}
+.notice-item time{font-family:var(--mono);font-size:11px;color:rgba(244,237,220,.55)}
+
+/* ============ 스탬프 패스(여권) — 시그니처 ============ */
+.pass{
+  background:var(--card);
+  border:1.5px solid var(--line-strong);
+  border-radius:var(--r);
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+.pass-top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+.pass-progress{font-family:var(--mono);font-size:13px;color:var(--ink-soft)}
+.pass-progress b{font-size:26px;color:var(--pine);font-weight:600}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px;width:120px}
+.bar > span{display:block;height:100%;background:var(--apricot);transition:width .5s ease}
+
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.slot{
+  aspect-ratio:1;
+  border:2px dashed var(--line-strong);
+  border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--ink-soft);
+  text-align:center;
+  position:relative;
+}
+.slot .n{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+.slot .nm{font-size:11px;margin-top:2px;padding:0 6px;line-height:1.2}
+/* 도장 찍힌 상태 */
+.slot.stamped{
+  border:2px solid transparent;
+  color:var(--stamp);
+}
+.slot.stamped .seal{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:2.5px solid var(--stamp);
+  border-radius:50%;
+  transform:rotate(-11deg);
+  opacity:.92;
+}
+.slot.stamped .seal .n{color:var(--stamp);font-weight:600}
+.slot.stamped .seal .nm{color:var(--stamp);font-weight:600}
+.slot.stamped .hide{visibility:hidden}
+@keyframes stampIn{0%{transform:rotate(-11deg) scale(1.9);opacity:0}60%{opacity:1}100%{transform:rotate(-11deg) scale(1);opacity:.92}}
+.slot.just .seal{animation:stampIn .35s cubic-bezier(.2,1.2,.3,1)}
+
+/* ============ 간식 교환권(티켓) ============ */
+.ticket{
+  position:relative;
+  background:var(--card);
+  border:1.5px solid var(--line-strong);
+  border-radius:var(--r);
+  padding:18px 20px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+/* 티켓 절취선 노치 */
+.ticket::before,.ticket::after{
+  content:"";position:absolute;left:50%;transform:translateX(-50%);
+  width:18px;height:18px;background:var(--paper);border-radius:50%;
+}
+.ticket::before{top:-9px}
+.ticket::after{bottom:-9px}
+.ticket .dash{position:absolute;left:14px;right:14px;top:50%;border-top:2px dashed var(--line-strong)}
+.ticket-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ticket-row .label{font-size:15px;font-weight:700}
+.ticket .sub{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+.ticket.locked{opacity:.72}
+.ticket .lock-ico{font-size:20px}
+.code{
+  font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:.18em;
+  color:var(--pine);background:var(--paper);border:1.5px dashed var(--pine);
+  padding:8px 14px;border-radius:10px;display:inline-block;margin-top:6px;
+}
+
+/* ============ 지도 ============ */
+.map{
+  position:relative;
+  aspect-ratio:1/1;
+  background:
+    linear-gradient(rgba(199,183,144,.35) 1px,transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg,rgba(199,183,144,.35) 1px,transparent 1px) 0 0/32px 32px,
+    var(--card);
+  border:1.5px solid var(--line-strong);
+  border-radius:var(--r);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.zone{
+  position:absolute;
+  border:1.5px solid var(--line-strong);
+  background:rgba(36,80,59,.06);
+  border-radius:8px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--pine);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+}
+.pin{
+  position:absolute;transform:translate(-50%,-100%);
+  display:flex;flex-direction:column;align-items:center;
+  border:none;background:none;cursor:pointer;padding:0;
+}
+.pin .dot{
+  width:30px;height:30px;border-radius:50% 50% 50% 2px;
+  background:var(--stamp);transform:rotate(45deg);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 8px -3px rgba(35,30,24,.6);
+  transition:transform .15s ease;
+}
+.pin .dot span{transform:rotate(-45deg);color:#fff;font-family:var(--mono);font-size:12px;font-weight:600}
+.pin.done .dot{background:var(--pine)}
+.pin .tag{
+  font-size:10px;margin-top:6px;background:var(--card);
+  border:1px solid var(--line-strong);border-radius:6px;padding:1px 5px;
+  white-space:nowrap;font-weight:600;color:var(--ink);
+}
+.pin:hover .dot,.pin:focus-visible .dot{transform:rotate(45deg) scale(1.12)}
+
+/* ============ 버튼 ============ */
+.btn{
+  font-family:var(--sans);font-size:15px;font-weight:600;
+  border:none;border-radius:12px;padding:14px 18px;cursor:pointer;
+  width:100%;transition:transform .1s ease,background .2s ease;
+}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--pine);color:#F4EDDC}
+.btn-primary:hover{background:var(--pine-deep)}
+.btn-apricot{background:var(--apricot);color:var(--pine-deep)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line-strong);color:var(--ink)}
+.btn:disabled{background:var(--line);color:var(--ink-soft);cursor:default}
+
+/* ============ 부스 상세 화면 ============ */
+.booth-head{padding:22px 0 16px;border-bottom:1.5px solid var(--line-strong)}
+.back{
+  font-family:var(--mono);font-size:12px;color:var(--pine);
+  background:none;border:none;cursor:pointer;display:inline-flex;gap:6px;align-items:center;
+  padding:0;margin-bottom:16px;
+}
+.booth-cat{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  color:var(--pine);background:rgba(36,80,59,.08);padding:3px 9px;border-radius:7px}
+.booth-head h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:10px 0 6px}
+.booth-loc{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.booth-desc{font-size:15px;color:var(--ink);margin-top:18px;line-height:1.65}
+
+.panel{
+  background:var(--card);border:1.5px solid var(--line-strong);
+  border-radius:var(--r);padding:18px;margin-top:20px;box-shadow:var(--shadow);
+}
+.panel h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.panel .hint{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px}
+
+/* 별점 */
+.stars{display:flex;gap:6px;justify-content:center;margin:6px 0 14px}
+.star{
+  font-size:34px;line-height:1;cursor:pointer;background:none;border:none;padding:2px;
+  color:var(--line-strong);transition:transform .1s ease,color .15s ease;
+}
+.star.on{color:var(--apricot)}
+.star:active{transform:scale(1.2)}
+.avg{text-align:center;font-family:var(--mono);font-size:13px;color:var(--ink-soft)}
+.avg b{color:var(--ink);font-size:16px}
+
+/* 도장 찍기 결과 */
+.stamped-badge{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0;
+  color:var(--stamp);
+}
+.stamped-badge .big{
+  width:88px;height:88px;border:3px solid var(--stamp);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;transform:rotate(-9deg);
+  font-family:var(--mono);font-weight:600;font-size:13px;text-align:center;line-height:1.2;
+}
+
+/* ============ 데모 배지 + 푸터 ============ */
+.demo-flag{
+  margin:26px 0 0;text-align:center;font-family:var(--mono);font-size:11px;
+  color:var(--ink-soft);letter-spacing:.04em;
+}
+.demo-flag span{background:rgba(228,155,87,.18);padding:3px 9px;border-radius:6px}
+.reset{background:none;border:none;color:var(--ink-soft);font-family:var(--mono);
+  font-size:11px;text-decoration:underline;cursor:pointer;margin-top:8px}
+
+.hidden{display:none !important}
+
+/* ============ 접근성 ============ */
+:focus-visible{outline:2.5px solid var(--pine);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= 홈 화면 ================= -->
+<div id="home-view">
+  <div class="wrap">
+
+    <header class="topbar">
+      <div class="eyebrow">
+        <span>FESTIVAL PASS · 2026</span>
+        <span class="clock" id="clock">--:--</span>
+      </div>
+      <h1 id="fest-name">가을 <em>한마당</em></h1>
+    </header>
+
+    <!-- 공지 -->
+    <section class="section">
+      <div class="notice">
+        <div class="eyebrow">전체 공지</div>
+        <div id="notice-list" style="margin-top:8px"></div>
+      </div>
+    </section>
+
+    <!-- 스탬프 패스 -->
+    <section class="section">
+      <div class="section-head">
+        <h2>스탬프 패스</h2>
+        <span class="count">부스를 방문해 도장을 모으세요</span>
+      </div>
+      <div class="pass">
+        <div class="pass-top">
+          <div class="pass-progress">
+            <b id="stamp-count">0</b> / <span id="stamp-total">6</span> 개
+            <div class="bar"><span id="stamp-bar" style="width:0%"></span></div>
+          </div>
+          <div class="eyebrow">도장 <span id="stamp-left">6</span>개 더 모으면 교환권</div>
+        </div>
+        <div class="slots" id="slots"></div>
+      </div>
+    </section>
+
+    <!-- 간식 교환권 -->
+    <section class="section">
+      <div class="section-head"><h2>간식 교환권</h2></div>
+      <div id="coupon-mount"></div>
+    </section>
+
+    <!-- 지도 -->
+    <section class="section">
+      <div class="section-head">
+        <h2>행사장 지도</h2>
+        <span class="count">핀을 눌러 부스로 이동</span>
+      </div>
+      <div class="map" id="map">
+        <div class="zone" style="left:6%;top:6%;width:32%;height:14%">무대</div>
+        <div class="zone" style="left:64%;top:6%;width:30%;height:14%">푸드존</div>
+        <div class="zone" style="left:40%;bottom:5%;width:22%;height:12%">정문</div>
+      </div>
+    </section>
+
+    <div class="demo-flag">
+      <span>데모 모드 · 이 기기에만 저장됩니다 (Firebase 연결은 3단계)</span>
+      <div><button class="reset" id="reset-btn">진행 초기화</button></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ================= 부스 상세 화면 ================= -->
+<div id="booth-view" class="hidden">
+  <div class="wrap">
+    <div class="booth-head">
+      <button class="back" id="back-btn">← 홈으로</button>
+      <div>
+        <span class="booth-cat" id="b-cat">체험</span>
+      </div>
+      <h1 id="b-name">부스 이름</h1>
+      <div class="booth-loc" id="b-loc">위치</div>
+      <p class="booth-desc" id="b-desc">설명</p>
+    </div>
+
+    <!-- 도장 찍기 -->
+    <div class="panel">
+      <h3>스탬프</h3>
+      <div class="hint">이 부스를 방문했다면 도장을 받으세요.</div>
+      <div id="stamp-action"></div>
+    </div>
+
+    <!-- 별점 -->
+    <div class="panel">
+      <h3>이 부스는 어땠나요?</h3>
+      <div class="hint">별을 눌러 평가해주세요. 언제든 다시 바꿀 수 있어요.</div>
+      <div class="stars" id="stars"></div>
+      <div class="avg">평균 <b id="b-avg">–</b> · <span id="b-rcount">0</span>명 평가</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   데이터 계층 (DB)
+   지금은 localStorage로 동작. 3단계에서 이 객체의 내부만 Firestore로 교체하면
+   나머지 화면 코드는 그대로 쓸 수 있게 분리해 둠.
+   ===================================================================== */
+
+/* -----------------------------------------------------------------
+   ▼ 공용 데이터 계층 (DB) — index.html / admin.html 에 동일하게 들어감
+     지금은 localStorage. 3단계에서 이 블록만 Firestore로 교체하면
+     화면 코드는 그대로 씀. 같은 도메인(GitHub Pages)에 올리면 두 페이지가
+     같은 저장소를 공유해서 관리자 수정이 방문자 화면에 반영됨.
+       · 공유 데이터   : config / booths / anns / ratingsAgg
+       · 이 기기 데이터 : myRatings / stamps / coupon
+   ----------------------------------------------------------------- */
+window.DB = (function(){
+  const KEY='festival_v2';
+
+  const DEFAULTS = {
+    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000' },
+    booths:[
+      {id:1,name:'미로 방탈출',cat:'체험',loc:'무대 왼쪽 A-1',x:14,y:34,desc:'제한 시간 안에 단서를 찾아 방을 탈출하세요. 3~4인 팀으로 참여할 수 있어요.'},
+      {id:2,name:'솜사탕 가게',cat:'먹거리',loc:'푸드존 F-2',x:80,y:30,desc:'즉석에서 만드는 수제 솜사탕. 딸기·소다·오리지널 세 가지 맛이 있어요.'},
+      {id:3,name:'즉석 포토부스',cat:'포토',loc:'중앙 광장 C-1',x:48,y:50,desc:'배경을 고르고 4컷 사진을 찍어보세요. 인화된 사진을 바로 가져갈 수 있어요.'},
+      {id:4,name:'보드게임 존',cat:'체험',loc:'무대 오른쪽 A-3',x:30,y:66,desc:'가볍게 즐기는 파티 게임부터 전략 게임까지. 30분 단위로 자리를 이용할 수 있어요.'},
+      {id:5,name:'밴드 라이브',cat:'공연',loc:'메인 무대',x:20,y:12,desc:'학생 밴드 공연이 30분마다 이어집니다. 공연 시작 시간은 공지를 확인하세요.'},
+      {id:6,name:'수제 굿즈샵',cat:'판매',loc:'푸드존 옆 G-1',x:72,y:60,desc:'직접 만든 스티커·엽서·키링을 판매해요. 수익금은 동아리 운영에 쓰입니다.'}
+    ],
+    anns:[
+      {id:1,pinned:true,title:'밴드 라이브 15시 시작',body:'메인 무대에서 첫 공연이 15시에 시작됩니다. 이후 30분 간격 진행!',ts:'14:20'},
+      {id:2,pinned:false,title:'분실물은 정문 안내데스크로',body:'물건을 주우셨다면 정문 안내데스크에 맡겨주세요.',ts:'13:05'}
+    ],
+    ratingsAgg:{1:{sum:37,count:9},2:{sum:42,count:10},3:{sum:33,count:7},4:{sum:28,count:6},5:{sum:44,count:9},6:{sum:19,count:5}}
+  };
+
+  function fresh(){
+    return {
+      config:{...DEFAULTS.config},
+      booths:DEFAULTS.booths.map(b=>({...b})),
+      anns:DEFAULTS.anns.map(a=>({...a})),
+      ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),
+      myRatings:{}, stamps:{}, coupon:{redeemed:false},
+      issuedCodes:{}, admin:false
+    };
+  }
+  function load(){ let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(!s||!s.config){ s=fresh(); save(s); } return s; }
+  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
+  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
+  function mkCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<5;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; }
+  function nowHM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+  return {
+    /* 설정 */
+    config(){ return load().config; },
+    setConfig(patch){ const s=load(); Object.assign(s.config,patch); save(s); },
+
+    /* 부스 */
+    booths(){ return load().booths; },
+    booth(id){ return load().booths.find(b=>b.id===Number(id)); },
+    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d}); save(s); return id; },
+    updateBooth(id,patch){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b) Object.assign(b,patch); save(s); },
+    deleteBooth(id){ const s=load(); s.booths=s.booths.filter(b=>b.id!==Number(id)); delete s.ratingsAgg[id]; delete s.stamps[id]; delete s.myRatings[id]; save(s); },
+
+    /* 공지 */
+    announcements(){ return [...load().anns].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)); },
+    addAnnouncement(d){ const s=load(); const id=nextId(s.anns); s.anns.unshift({id,ts:nowHM(),pinned:false,...d}); save(s); return id; },
+    deleteAnnouncement(id){ const s=load(); s.anns=s.anns.filter(a=>a.id!==Number(id)); save(s); },
+    togglePin(id){ const s=load(); const a=s.anns.find(a=>a.id===Number(id)); if(a) a.pinned=!a.pinned; save(s); },
+
+    /* 스탬프 */
+    stamps(){ return load().stamps; },
+    stampCount(){ return Object.keys(load().stamps).length; },
+    hasStamp(id){ return !!load().stamps[id]; },
+    addStamp(id){ const s=load(); s.stamps[id]=true; save(s); },
+
+    /* 별점 */
+    myRating(id){ return load().myRatings[id]||0; },
+    ratingAvg(id){ const a=load().ratingsAgg[id]||{sum:0,count:0}; return {avg:a.count?a.sum/a.count:0,count:a.count}; },
+    setRating(id,stars){ const s=load(); const prev=s.myRatings[id]||0; if(!s.ratingsAgg[id]) s.ratingsAgg[id]={sum:0,count:0}; const agg=s.ratingsAgg[id]; if(prev){agg.sum+=stars-prev;} else {agg.sum+=stars;agg.count+=1;} s.myRatings[id]=stars; save(s); },
+    ratingStats(){ const s=load(); return s.booths.map(b=>{ const a=s.ratingsAgg[b.id]||{sum:0,count:0}; return {id:b.id,name:b.name,avg:a.count?a.sum/a.count:0,count:a.count}; }); },
+
+    /* 교환권 */
+    couponUnlocked(){ return this.stampCount()>=load().config.couponGoal; },
+    coupon(){ return load().coupon; },
+    couponCode(){ const s=load(); if(!s.coupon.code){ s.coupon.code=mkCode(); save(s);} return s.coupon.code; },
+    redeemCoupon(){ const s=load(); if(!s.coupon.code) s.coupon.code=mkCode(); s.coupon.redeemed=true; s.issuedCodes[s.coupon.code]={used:false,ts:nowHM()}; save(s); return s.coupon.code; },
+    verifyCoupon(c){ const rec=load().issuedCodes[(c||'').toUpperCase().trim()]; return rec?{found:true,used:rec.used,ts:rec.ts}:{found:false}; },
+    useCoupon(c){ const s=load(); const rec=s.issuedCodes[(c||'').toUpperCase().trim()]; if(rec){ rec.used=true; save(s);} },
+
+    /* 관리자 인증 (데모용 비밀번호) */
+    login(pw){ const s=load(); if(pw===s.config.adminPw){ s.admin=true; save(s); return true;} return false; },
+    logout(){ const s=load(); s.admin=false; save(s); },
+    isAdmin(){ return !!load().admin; },
+
+    reset(){ localStorage.removeItem(KEY); }
+  };
+})();
+
+/* =====================================================================
+   라우팅: ?booth=N 있으면 부스 화면, 없으면 홈
+   ===================================================================== */
+function currentBoothId(){
+  return new URLSearchParams(location.search).get('booth');
+}
+function goHome(){
+  history.pushState({}, '', location.pathname);
+  render();
+}
+function goBooth(id){
+  history.pushState({}, '', location.pathname + '?booth=' + id);
+  render();
+}
+window.addEventListener('popstate', render);
+
+/* =====================================================================
+   홈 렌더링
+   ===================================================================== */
+function renderHome(){
+  document.getElementById('fest-name').innerHTML =
+    DB.config().festivalName.replace(/(\S+)$/, '<em>$1</em>');
+
+  /* 공지 */
+  const nl = document.getElementById('notice-list');
+  nl.innerHTML = DB.announcements().map(a => `
+    <div class="notice-item">
+      <h3>${a.pinned?'<span class="pin">고정</span>':''}${esc(a.title)}</h3>
+      <p>${esc(a.body)}</p>
+      <time>${esc(a.ts)}</time>
+    </div>`).join('');
+
+  /* 스탬프 패스 */
+  const total = DB.booths().length;
+  const got = DB.stampCount();
+  document.getElementById('stamp-count').textContent = got;
+  document.getElementById('stamp-total').textContent = total;
+  document.getElementById('stamp-bar').style.width = (got/total*100)+'%';
+  const left = Math.max(0, DB.config().couponGoal - got);
+  document.getElementById('stamp-left').textContent = left>0? left : '✓';
+
+  const slots = document.getElementById('slots');
+  slots.innerHTML = DB.booths().map(b=>{
+    const done = DB.hasStamp(b.id);
+    return `<button class="slot ${done?'stamped':''}" onclick="goBooth(${b.id})" aria-label="${esc(b.name)}">
+      <span class="n ${done?'hide':''}">${String(b.id).padStart(2,'0')}</span>
+      <span class="nm ${done?'hide':''}">${esc(b.name)}</span>
+      ${done?`<span class="seal"><span class="n">${String(b.id).padStart(2,'0')}</span><span class="nm">${esc(b.name)}</span></span>`:''}
+    </button>`;
+  }).join('');
+
+  /* 교환권 */
+  renderCoupon();
+
+  /* 지도 핀 */
+  const map = document.getElementById('map');
+  map.querySelectorAll('.pin').forEach(p=>p.remove());
+  DB.booths().forEach(b=>{
+    const done = DB.hasStamp(b.id);
+    const pin = document.createElement('button');
+    pin.className = 'pin' + (done?' done':'');
+    pin.style.left = b.x+'%'; pin.style.top = b.y+'%';
+    pin.setAttribute('aria-label', b.name);
+    pin.innerHTML = `<span class="dot"><span>${b.id}</span></span><span class="tag">${esc(b.name)}</span>`;
+    pin.onclick = ()=>goBooth(b.id);
+    map.appendChild(pin);
+  });
+}
+
+function renderCoupon(){
+  const mount = document.getElementById('coupon-mount');
+  const unlocked = DB.couponUnlocked();
+  const c = DB.coupon();
+
+  if(!unlocked){
+    const need = DB.config().couponGoal - DB.stampCount();
+    mount.innerHTML = `
+      <div class="ticket locked">
+        <div class="ticket-row">
+          <div>
+            <div class="ticket-row" style="gap:8px"><span class="lock-ico">🔒</span><span class="label">간식 교환권</span></div>
+            <div class="sub">도장 <b>${need}</b>개만 더 모으면 열려요</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if(c.redeemed){
+    mount.innerHTML = `
+      <div class="ticket">
+        <div class="dash"></div>
+        <div class="ticket-row">
+          <div>
+            <span class="label">교환 완료</span>
+            <div class="sub">아래 코드를 스태프에게 보여주셨어요</div>
+            <div class="code">${DB.couponCode()}</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  mount.innerHTML = `
+    <div class="ticket">
+      <div class="dash"></div>
+      <div class="ticket-row">
+        <div>
+          <span class="label">간식 교환권 준비 완료</span>
+          <div class="sub">교환처에서 코드를 보여주세요</div>
+        </div>
+      </div>
+      <button class="btn btn-apricot" style="margin-top:14px" id="redeem-btn">교환하기</button>
+    </div>`;
+  document.getElementById('redeem-btn').onclick = ()=>{
+    DB.redeemCoupon();
+    renderCoupon();
+  };
+}
+
+/* =====================================================================
+   부스 화면 렌더링
+   ===================================================================== */
+function renderBooth(id){
+  const b = DB.booth(id);
+  if(!b){ goHome(); return; }
+
+  document.getElementById('b-cat').textContent  = b.cat;
+  document.getElementById('b-name').textContent = b.name;
+  document.getElementById('b-loc').textContent  = '📍 ' + b.loc;
+  document.getElementById('b-desc').textContent = b.desc;
+
+  /* 도장 찍기 */
+  const sa = document.getElementById('stamp-action');
+  if(DB.hasStamp(b.id)){
+    sa.innerHTML = `
+      <div class="stamped-badge">
+        <div class="big">도장<br>완료</div>
+        <div class="muted mono" style="font-size:12px">이 부스는 이미 방문했어요</div>
+      </div>`;
+  } else {
+    sa.innerHTML = `<button class="btn btn-primary" id="stamp-btn">도장 받기</button>`;
+    document.getElementById('stamp-btn').onclick = ()=>{
+      DB.addStamp(b.id);
+      renderBooth(id);
+    };
+  }
+
+  /* 별점 */
+  const my = DB.myRating(b.id);
+  const stars = document.getElementById('stars');
+  stars.innerHTML = [1,2,3,4,5].map(n=>
+    `<button class="star ${n<=my?'on':''}" data-n="${n}" aria-label="${n}점">★</button>`
+  ).join('');
+  stars.querySelectorAll('.star').forEach(st=>{
+    st.onclick = ()=>{
+      DB.setRating(b.id, Number(st.dataset.n));
+      renderBooth(id);
+    };
+  });
+  const r = DB.ratingAvg(b.id);
+  document.getElementById('b-avg').textContent = r.count? r.avg.toFixed(1) : '–';
+  document.getElementById('b-rcount').textContent = r.count;
+}
+
+/* =====================================================================
+   메인 렌더 / 초기화
+   ===================================================================== */
+function render(){
+  const id = currentBoothId();
+  const home = document.getElementById('home-view');
+  const booth = document.getElementById('booth-view');
+  if(id){
+    home.classList.add('hidden');
+    booth.classList.remove('hidden');
+    renderBooth(id);
+    window.scrollTo(0,0);
+  } else {
+    booth.classList.add('hidden');
+    home.classList.remove('hidden');
+    renderHome();
+  }
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+/* 시계 */
+function tick(){
+  const d=new Date();
+  document.getElementById('clock').textContent =
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick,10000);
+
+/* 버튼 바인딩 */
+document.getElementById('back-btn').onclick  = goHome;
+document.getElementById('reset-btn').onclick = ()=>{
+  if(confirm('스탬프·별점·교환권 진행을 모두 초기화할까요?')){ DB.reset(); render(); }
+};
+
+render();
+</script>
+</body>
+</html>

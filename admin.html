@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>관리자 · 가을 한마당</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+:root{
+  --paper:#F4EDDC; --card:#FBF6EA; --ink:#221E18; --ink-soft:#6A5E4E;
+  --pine:#24503B; --pine-deep:#173424; --apricot:#E49B57; --stamp:#B5432E;
+  --line:#DCceb0; --line-strong:#C7B790;
+  --sans:'Pretendard','Pretendard Variable',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --r:14px; --shadow:0 1px 0 rgba(0,0,0,.04),0 8px 24px -18px rgba(35,30,24,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--sans);color:var(--ink);background:var(--paper);
+  background-image:radial-gradient(rgba(120,100,70,.05) 1px,transparent 1px);
+  background-size:18px 18px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding-bottom:60px;
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 18px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase}
+.mono{font-family:var(--mono)}
+.muted{color:var(--ink-soft)}
+
+/* ===== 로그인 ===== */
+#login-view{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{
+  background:var(--card);border:1.5px solid var(--line-strong);border-radius:var(--r);
+  padding:30px 26px;width:100%;max-width:360px;box-shadow:var(--shadow);text-align:center;
+}
+.login-card .eyebrow{color:var(--pine)}
+.login-card h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:10px 0 22px}
+.login-card input{
+  width:100%;font-family:var(--mono);font-size:20px;text-align:center;letter-spacing:.3em;
+  padding:14px;border:1.5px solid var(--line-strong);border-radius:10px;background:var(--paper);
+  color:var(--ink);margin-bottom:14px;
+}
+.login-hint{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:14px}
+.login-err{color:var(--stamp);font-size:13px;min-height:18px;margin-bottom:8px}
+
+/* ===== 헤더 ===== */
+.admin-header{background:var(--pine);color:var(--paper)}
+.admin-header .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:18px;padding-bottom:18px}
+.admin-header .eyebrow{color:var(--apricot)}
+.admin-header h1{font-size:20px;font-weight:800;letter-spacing:-.01em;margin-top:2px}
+.head-actions{display:flex;gap:10px;align-items:center}
+.head-actions a,.head-actions button{
+  font-family:var(--mono);font-size:11px;color:var(--paper);background:rgba(244,237,220,.14);
+  border:none;border-radius:8px;padding:7px 10px;cursor:pointer;text-decoration:none;letter-spacing:.03em;
+}
+.head-actions a:hover,.head-actions button:hover{background:rgba(244,237,220,.24)}
+
+/* ===== 탭 ===== */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:16px 0 4px;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;font-family:var(--sans);font-size:14px;font-weight:600;white-space:nowrap;
+  padding:9px 15px;border-radius:99px;border:1.5px solid var(--line-strong);
+  background:var(--card);color:var(--ink-soft);cursor:pointer;
+}
+.tab.active{background:var(--pine);border-color:var(--pine);color:var(--paper)}
+
+/* ===== 패널/카드 ===== */
+.panel-admin{padding:6px 0 0}
+.section-title{font-size:15px;font-weight:700;margin:20px 0 12px}
+.card{background:var(--card);border:1.5px solid var(--line-strong);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.list{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.row{
+  background:var(--card);border:1.5px solid var(--line-strong);border-radius:12px;
+  padding:13px 14px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;
+}
+.row .info h4{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px}
+.row .info .meta{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-top:3px}
+.row .info p{font-size:13px;color:var(--ink-soft);margin-top:5px;line-height:1.45}
+.row .acts{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+.badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;letter-spacing:.03em}
+.badge.cat{background:rgba(36,80,59,.1);color:var(--pine)}
+.badge.pin{background:var(--apricot);color:var(--pine-deep)}
+
+/* ===== 폼 ===== */
+.field{margin-bottom:13px}
+.field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase}
+.field input,.field textarea,.field select{
+  width:100%;font-family:var(--sans);font-size:14.5px;color:var(--ink);
+  padding:11px 12px;border:1.5px solid var(--line-strong);border-radius:10px;background:var(--paper);
+}
+.field textarea{resize:vertical;min-height:70px;line-height:1.5}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{display:flex;align-items:center;gap:9px;font-size:14px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--pine)}
+
+/* 버튼 */
+.btn{font-family:var(--sans);font-size:14.5px;font-weight:600;border:none;border-radius:10px;padding:12px 16px;cursor:pointer;transition:transform .1s ease,background .2s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--pine);color:var(--paper)}
+.btn-primary:hover{background:var(--pine-deep)}
+.btn-block{width:100%}
+.btn-sm{font-size:12px;padding:7px 11px;border-radius:8px}
+.btn-ghost{background:transparent;border:1.5px solid var(--line-strong);color:var(--ink)}
+.btn-danger{background:transparent;border:1.5px solid var(--stamp);color:var(--stamp)}
+.btn-danger:hover{background:var(--stamp);color:#fff}
+.btn-apricot{background:var(--apricot);color:var(--pine-deep)}
+
+/* 미니 지도 (부스 위치) */
+.mini-map{
+  position:relative;aspect-ratio:1.3/1;margin-top:6px;
+  background:
+    linear-gradient(rgba(199,183,144,.35) 1px,transparent 1px) 0 0/28px 28px,
+    linear-gradient(90deg,rgba(199,183,144,.35) 1px,transparent 1px) 0 0/28px 28px,
+    var(--paper);
+  border:1.5px solid var(--line-strong);border-radius:10px;overflow:hidden;cursor:crosshair;
+}
+.mini-map .zone{position:absolute;border:1.5px solid var(--line-strong);background:rgba(36,80,59,.06);border-radius:6px;font-family:var(--mono);font-size:9px;color:var(--pine);display:flex;align-items:center;justify-content:center;pointer-events:none}
+.mini-map .fpin{position:absolute;transform:translate(-50%,-100%);pointer-events:none;transition:left .1s,top .1s}
+.mini-map .fpin .dot{width:26px;height:26px;border-radius:50% 50% 50% 2px;background:var(--stamp);transform:rotate(45deg);box-shadow:0 4px 8px -3px rgba(35,30,24,.6)}
+.map-hint{font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-top:6px;text-align:center}
+
+/* 통계 바 */
+.stat{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px dashed var(--line-strong)}
+.stat:first-child{border-top:none}
+.stat .nm{flex:0 0 42%;font-size:14px;font-weight:600}
+.stat .track{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.stat .track>span{display:block;height:100%;background:var(--apricot)}
+.stat .val{flex:0 0 auto;font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.stat .val b{color:var(--ink);font-size:14px}
+
+/* 교환권 확인 결과 */
+.verify{margin-top:14px;padding:14px;border-radius:10px;font-size:14px;display:none}
+.verify.show{display:block}
+.verify.ok{background:rgba(36,80,59,.08);border:1.5px solid var(--pine);color:var(--pine)}
+.verify.used{background:rgba(181,67,46,.08);border:1.5px solid var(--stamp);color:var(--stamp)}
+.verify.none{background:var(--card);border:1.5px solid var(--line-strong);color:var(--ink-soft)}
+.verify b{font-family:var(--mono);letter-spacing:.15em}
+
+.note{font-size:12px;color:var(--ink-soft);background:rgba(228,155,87,.14);border-radius:10px;padding:11px 13px;margin-top:14px;line-height:1.5}
+.hidden{display:none !important}
+:focus-visible{outline:2.5px solid var(--pine);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ===== 로그인 ===== -->
+<div id="login-view">
+  <div class="login-card">
+    <div class="eyebrow">ADMIN</div>
+    <h1>관리자 로그인</h1>
+    <div class="login-err" id="login-err"></div>
+    <input id="pw" type="password" inputmode="numeric" placeholder="••••" maxlength="20" />
+    <button class="btn btn-primary btn-block" id="login-btn">로그인</button>
+    <div class="login-hint">기본 비밀번호: 0000 · 설정에서 변경</div>
+  </div>
+</div>
+
+<!-- ===== 관리자 ===== -->
+<div id="admin-view" class="hidden">
+  <header class="admin-header">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow">ADMIN</div>
+        <h1 id="hdr-name">가을 한마당</h1>
+      </div>
+      <div class="head-actions">
+        <a href="index.html" target="_blank">방문자 화면 ↗</a>
+        <button id="logout-btn">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="booths">부스</button>
+      <button class="tab" data-tab="anns">공지</button>
+      <button class="tab" data-tab="coupon">교환권</button>
+      <button class="tab" data-tab="stats">별점 통계</button>
+      <button class="tab" data-tab="settings">설정</button>
+    </nav>
+    <div id="panel" class="panel-admin"></div>
+  </div>
+</div>
+
+<script>
+/* -----------------------------------------------------------------
+   ▼ 공용 데이터 계층 (DB) — index.html 과 동일. 3단계에서 함께 교체.
+   ----------------------------------------------------------------- */
+window.DB = (function(){
+  const KEY='festival_v2';
+  const DEFAULTS = {
+    config:{ festivalName:'가을 한마당', couponGoal:4, adminPw:'0000' },
+    booths:[
+      {id:1,name:'미로 방탈출',cat:'체험',loc:'무대 왼쪽 A-1',x:14,y:34,desc:'제한 시간 안에 단서를 찾아 방을 탈출하세요. 3~4인 팀으로 참여할 수 있어요.'},
+      {id:2,name:'솜사탕 가게',cat:'먹거리',loc:'푸드존 F-2',x:80,y:30,desc:'즉석에서 만드는 수제 솜사탕. 딸기·소다·오리지널 세 가지 맛이 있어요.'},
+      {id:3,name:'즉석 포토부스',cat:'포토',loc:'중앙 광장 C-1',x:48,y:50,desc:'배경을 고르고 4컷 사진을 찍어보세요. 인화된 사진을 바로 가져갈 수 있어요.'},
+      {id:4,name:'보드게임 존',cat:'체험',loc:'무대 오른쪽 A-3',x:30,y:66,desc:'가볍게 즐기는 파티 게임부터 전략 게임까지. 30분 단위로 자리를 이용할 수 있어요.'},
+      {id:5,name:'밴드 라이브',cat:'공연',loc:'메인 무대',x:20,y:12,desc:'학생 밴드 공연이 30분마다 이어집니다. 공연 시작 시간은 공지를 확인하세요.'},
+      {id:6,name:'수제 굿즈샵',cat:'판매',loc:'푸드존 옆 G-1',x:72,y:60,desc:'직접 만든 스티커·엽서·키링을 판매해요. 수익금은 동아리 운영에 쓰입니다.'}
+    ],
+    anns:[
+      {id:1,pinned:true,title:'밴드 라이브 15시 시작',body:'메인 무대에서 첫 공연이 15시에 시작됩니다. 이후 30분 간격 진행!',ts:'14:20'},
+      {id:2,pinned:false,title:'분실물은 정문 안내데스크로',body:'물건을 주우셨다면 정문 안내데스크에 맡겨주세요.',ts:'13:05'}
+    ],
+    ratingsAgg:{1:{sum:37,count:9},2:{sum:42,count:10},3:{sum:33,count:7},4:{sum:28,count:6},5:{sum:44,count:9},6:{sum:19,count:5}}
+  };
+  function fresh(){ return {config:{...DEFAULTS.config},booths:DEFAULTS.booths.map(b=>({...b})),anns:DEFAULTS.anns.map(a=>({...a})),ratingsAgg:JSON.parse(JSON.stringify(DEFAULTS.ratingsAgg)),myRatings:{},stamps:{},coupon:{redeemed:false},issuedCodes:{},admin:false}; }
+  function load(){ let s=null; try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){} if(!s||!s.config){ s=fresh(); save(s); } return s; }
+  function save(s){ localStorage.setItem(KEY,JSON.stringify(s)); }
+  function nextId(arr){ return arr.reduce((m,x)=>Math.max(m,x.id),0)+1; }
+  function mkCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let r=''; for(let i=0;i<5;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; }
+  function nowHM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  return {
+    config(){ return load().config; },
+    setConfig(patch){ const s=load(); Object.assign(s.config,patch); save(s); },
+    booths(){ return load().booths; },
+    booth(id){ return load().booths.find(b=>b.id===Number(id)); },
+    addBooth(d){ const s=load(); const id=nextId(s.booths); s.booths.push({id,x:50,y:50,...d}); save(s); return id; },
+    updateBooth(id,patch){ const s=load(); const b=s.booths.find(b=>b.id===Number(id)); if(b) Object.assign(b,patch); save(s); },
+    deleteBooth(id){ const s=load(); s.booths=s.booths.filter(b=>b.id!==Number(id)); delete s.ratingsAgg[id]; delete s.stamps[id]; delete s.myRatings[id]; save(s); },
+    announcements(){ return [...load().anns].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)); },
+    addAnnouncement(d){ const s=load(); const id=nextId(s.anns); s.anns.unshift({id,ts:nowHM(),pinned:false,...d}); save(s); return id; },
+    deleteAnnouncement(id){ const s=load(); s.anns=s.anns.filter(a=>a.id!==Number(id)); save(s); },
+    togglePin(id){ const s=load(); const a=s.anns.find(a=>a.id===Number(id)); if(a) a.pinned=!a.pinned; save(s); },
+    stamps(){ return load().stamps; },
+    stampCount(){ return Object.keys(load().stamps).length; },
+    hasStamp(id){ return !!load().stamps[id]; },
+    addStamp(id){ const s=load(); s.stamps[id]=true; save(s); },
+    myRating(id){ return load().myRatings[id]||0; },
+    ratingAvg(id){ const a=load().ratingsAgg[id]||{sum:0,count:0}; return {avg:a.count?a.sum/a.count:0,count:a.count}; },
+    setRating(id,stars){ const s=load(); const prev=s.myRatings[id]||0; if(!s.ratingsAgg[id]) s.ratingsAgg[id]={sum:0,count:0}; const agg=s.ratingsAgg[id]; if(prev){agg.sum+=stars-prev;} else {agg.sum+=stars;agg.count+=1;} s.myRatings[id]=stars; save(s); },
+    ratingStats(){ const s=load(); return s.booths.map(b=>{ const a=s.ratingsAgg[b.id]||{sum:0,count:0}; return {id:b.id,name:b.name,avg:a.count?a.sum/a.count:0,count:a.count}; }); },
+    couponUnlocked(){ return this.stampCount()>=load().config.couponGoal; },
+    coupon(){ return load().coupon; },
+    couponCode(){ const s=load(); if(!s.coupon.code){ s.coupon.code=mkCode(); save(s);} return s.coupon.code; },
+    redeemCoupon(){ const s=load(); if(!s.coupon.code) s.coupon.code=mkCode(); s.coupon.redeemed=true; s.issuedCodes[s.coupon.code]={used:false,ts:nowHM()}; save(s); return s.coupon.code; },
+    verifyCoupon(c){ const rec=load().issuedCodes[(c||'').toUpperCase().trim()]; return rec?{found:true,used:rec.used,ts:rec.ts}:{found:false}; },
+    useCoupon(c){ const s=load(); const rec=s.issuedCodes[(c||'').toUpperCase().trim()]; if(rec){ rec.used=true; save(s);} },
+    issuedCodes(){ return load().issuedCodes; },
+    login(pw){ const s=load(); if(pw===s.config.adminPw){ s.admin=true; save(s); return true;} return false; },
+    logout(){ const s=load(); s.admin=false; save(s); },
+    isAdmin(){ return !!load().admin; },
+    reset(){ localStorage.removeItem(KEY); }
+  };
+})();
+
+/* -----------------------------------------------------------------
+   화면 로직
+   ----------------------------------------------------------------- */
+const $=s=>document.querySelector(s);
+function esc(s){ return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+/* ---- 로그인 게이트 ---- */
+function showApp(){
+  $('#login-view').classList.add('hidden');
+  $('#admin-view').classList.remove('hidden');
+  $('#hdr-name').textContent = DB.config().festivalName;
+  setTab(activeTab);
+}
+function tryLogin(){
+  const ok = DB.login($('#pw').value);
+  if(ok){ showApp(); }
+  else { $('#login-err').textContent='비밀번호가 맞지 않아요.'; $('#pw').value=''; $('#pw').focus(); }
+}
+$('#login-btn').onclick = tryLogin;
+$('#pw').addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+$('#logout-btn').onclick = ()=>{ DB.logout(); location.reload(); };
+
+/* ---- 탭 ---- */
+let activeTab='booths';
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{ activeTab=t.dataset.tab; setTab(activeTab); };
+});
+function setTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  ({booths:renderBooths,anns:renderAnns,coupon:renderCoupon,stats:renderStats,settings:renderSettings}[name])();
+}
+
+/* ================= 부스 ================= */
+let editingBooth=null; // null=새 부스, 아니면 id
+function renderBooths(){
+  const b = editingBooth ? DB.booth(editingBooth) : {name:'',cat:'',loc:'',desc:'',x:50,y:50};
+  const list = DB.booths();
+  $('#panel').innerHTML = `
+    <div class="section-title">${editingBooth?'부스 수정':'새 부스 추가'}</div>
+    <div class="card">
+      <div class="field"><label>부스 이름</label><input id="f-name" value="${esc(b.name)}" placeholder="예: 미로 방탈출" /></div>
+      <div class="row2">
+        <div class="field"><label>카테고리</label><input id="f-cat" list="cats" value="${esc(b.cat)}" placeholder="체험" />
+          <datalist id="cats"><option>체험</option><option>먹거리</option><option>공연</option><option>포토</option><option>판매</option><option>전시</option></datalist>
+        </div>
+        <div class="field"><label>위치</label><input id="f-loc" value="${esc(b.loc)}" placeholder="A-1" /></div>
+      </div>
+      <div class="field"><label>설명</label><textarea id="f-desc" placeholder="부스 소개를 적어주세요">${esc(b.desc)}</textarea></div>
+      <div class="field">
+        <label>지도 위치 (지도를 눌러 지정)</label>
+        <div class="mini-map" id="mini-map">
+          <div class="zone" style="left:6%;top:6%;width:32%;height:16%">무대</div>
+          <div class="zone" style="left:64%;top:6%;width:30%;height:16%">푸드존</div>
+          <div class="zone" style="left:40%;bottom:6%;width:22%;height:14%">정문</div>
+          <div class="fpin" id="f-pin" style="left:${b.x}%;top:${b.y}%"><div class="dot"></div></div>
+        </div>
+        <div class="map-hint">X <span id="f-x">${b.x}</span>% · Y <span id="f-y">${b.y}</span>%</div>
+      </div>
+      <div class="row2" style="margin-top:4px">
+        <button class="btn btn-primary" id="save-booth">${editingBooth?'수정 저장':'부스 추가'}</button>
+        <button class="btn btn-ghost" id="cancel-booth">${editingBooth?'취소':'입력 초기화'}</button>
+      </div>
+    </div>
+
+    <div class="section-title">부스 목록 · ${list.length}개</div>
+    <div class="list" id="booth-list"></div>
+  `;
+
+  // 미니맵 클릭 → 좌표
+  let coord={x:b.x,y:b.y};
+  const map=$('#mini-map'), pin=$('#f-pin');
+  map.addEventListener('click', e=>{
+    const r=map.getBoundingClientRect();
+    coord.x=Math.min(98,Math.max(2,Math.round((e.clientX-r.left)/r.width*100)));
+    coord.y=Math.min(96,Math.max(4,Math.round((e.clientY-r.top)/r.height*100)));
+    pin.style.left=coord.x+'%'; pin.style.top=coord.y+'%';
+    $('#f-x').textContent=coord.x; $('#f-y').textContent=coord.y;
+  });
+
+  $('#save-booth').onclick=()=>{
+    const d={
+      name:$('#f-name').value.trim(), cat:$('#f-cat').value.trim()||'기타',
+      loc:$('#f-loc').value.trim(), desc:$('#f-desc').value.trim(),
+      x:coord.x, y:coord.y
+    };
+    if(!d.name){ alert('부스 이름을 입력해주세요.'); return; }
+    if(editingBooth){ DB.updateBooth(editingBooth,d); editingBooth=null; }
+    else { DB.addBooth(d); }
+    renderBooths();
+  };
+  $('#cancel-booth').onclick=()=>{ editingBooth=null; renderBooths(); };
+
+  const bl=$('#booth-list');
+  bl.innerHTML = list.map(x=>{
+    const r=DB.ratingAvg(x.id);
+    return `<div class="row">
+      <div class="info">
+        <h4><span class="badge cat">${esc(x.cat)}</span>${esc(x.name)}</h4>
+        <div class="meta">#${String(x.id).padStart(2,'0')} · 📍${esc(x.loc||'-')} · ★${r.count?r.avg.toFixed(1):'–'} (${r.count})</div>
+        <p>${esc(x.desc||'')}</p>
+      </div>
+      <div class="acts">
+        <button class="btn btn-ghost btn-sm" data-edit="${x.id}">수정</button>
+        <button class="btn btn-danger btn-sm" data-del="${x.id}">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+  bl.querySelectorAll('[data-edit]').forEach(btn=> btn.onclick=()=>{ editingBooth=Number(btn.dataset.edit); renderBooths(); window.scrollTo(0,0); });
+  bl.querySelectorAll('[data-del]').forEach(btn=> btn.onclick=()=>{
+    const b2=DB.booth(btn.dataset.del);
+    if(confirm(`'${b2.name}' 부스를 삭제할까요? 관련 별점·도장 기록도 사라져요.`)){ DB.deleteBooth(btn.dataset.del); if(editingBooth==Number(btn.dataset.del)) editingBooth=null; renderBooths(); }
+  });
+}
+
+/* ================= 공지 ================= */
+function renderAnns(){
+  const list=DB.announcements();
+  $('#panel').innerHTML=`
+    <div class="section-title">새 공지 작성</div>
+    <div class="card">
+      <div class="field"><label>제목</label><input id="a-title" placeholder="예: 밴드 공연 15시 시작" /></div>
+      <div class="field"><label>내용</label><textarea id="a-body" placeholder="공지 내용을 적어주세요"></textarea></div>
+      <label class="check" style="margin-bottom:14px"><input type="checkbox" id="a-pin" />상단에 고정</label>
+      <button class="btn btn-primary btn-block" id="add-ann">공지 올리기</button>
+    </div>
+    <div class="section-title">공지 목록 · ${list.length}개</div>
+    <div class="list" id="ann-list"></div>
+  `;
+  $('#add-ann').onclick=()=>{
+    const title=$('#a-title').value.trim(), body=$('#a-body').value.trim();
+    if(!title){ alert('제목을 입력해주세요.'); return; }
+    DB.addAnnouncement({title,body,pinned:$('#a-pin').checked});
+    renderAnns();
+  };
+  const al=$('#ann-list');
+  al.innerHTML=list.map(a=>`
+    <div class="row">
+      <div class="info">
+        <h4>${a.pinned?'<span class="badge pin">고정</span>':''}${esc(a.title)}</h4>
+        <div class="meta">${esc(a.ts)}</div>
+        <p>${esc(a.body)}</p>
+      </div>
+      <div class="acts">
+        <button class="btn btn-ghost btn-sm" data-pin="${a.id}">${a.pinned?'고정 해제':'고정'}</button>
+        <button class="btn btn-danger btn-sm" data-del="${a.id}">삭제</button>
+      </div>
+    </div>`).join('');
+  al.querySelectorAll('[data-pin]').forEach(b=> b.onclick=()=>{ DB.togglePin(b.dataset.pin); renderAnns(); });
+  al.querySelectorAll('[data-del]').forEach(b=> b.onclick=()=>{ if(confirm('이 공지를 삭제할까요?')){ DB.deleteAnnouncement(b.dataset.del); renderAnns(); } });
+}
+
+/* ================= 교환권 확인 ================= */
+function renderCoupon(){
+  const codes=DB.issuedCodes();
+  const all=Object.entries(codes);
+  const used=all.filter(([,v])=>v.used).length;
+  $('#panel').innerHTML=`
+    <div class="section-title">교환권 코드 확인</div>
+    <div class="card">
+      <div class="field"><label>방문자 코드</label><input id="v-code" style="font-family:var(--mono);letter-spacing:.2em;text-transform:uppercase" placeholder="예: A7K2M" maxlength="5" /></div>
+      <button class="btn btn-primary btn-block" id="verify-btn">확인</button>
+      <div class="verify" id="verify-out"></div>
+    </div>
+    <div class="note">데모에서는 <b>이 기기에서 발급된 코드</b>만 확인돼요. 실제 행사처럼 방문자 폰과 스태프 폰이 서로 다른 기기에서 확인되려면 3단계 Firebase 연결이 필요해요.</div>
+    <div class="section-title">발급 현황</div>
+    <div class="card"><div class="mono muted" style="font-size:13px">총 발급 ${all.length}건 · 사용 완료 ${used}건 · 미사용 ${all.length-used}건</div></div>
+  `;
+  $('#verify-btn').onclick=()=>{
+    const code=$('#v-code').value.toUpperCase().trim();
+    const out=$('#verify-out');
+    const r=DB.verifyCoupon(code);
+    out.className='verify show';
+    if(!r.found){ out.classList.add('none'); out.innerHTML=`코드 <b>${esc(code||'—')}</b> 는 발급된 적이 없어요.`; return; }
+    if(r.used){ out.classList.add('used'); out.innerHTML=`코드 <b>${esc(code)}</b> 는 이미 사용 완료된 코드예요.`; return; }
+    out.classList.add('ok');
+    out.innerHTML=`코드 <b>${esc(code)}</b> · 사용 가능 <div style="margin-top:10px"><button class="btn btn-apricot btn-sm" id="use-btn">사용 처리</button></div>`;
+    $('#use-btn').onclick=()=>{ DB.useCoupon(code); renderCoupon(); };
+  };
+}
+
+/* ================= 별점 통계 ================= */
+function renderStats(){
+  const stats=DB.ratingStats().sort((a,b)=>b.avg-a.avg);
+  const rated=stats.filter(s=>s.count>0);
+  const overall = rated.length ? (rated.reduce((t,s)=>t+s.avg,0)/rated.length) : 0;
+  $('#panel').innerHTML=`
+    <div class="section-title">부스 별점 · 평균 ★${overall?overall.toFixed(2):'–'}</div>
+    <div class="card" id="stat-card"></div>
+  `;
+  $('#stat-card').innerHTML = stats.map(s=>`
+    <div class="stat">
+      <div class="nm">${esc(s.name)}</div>
+      <div class="track"><span style="width:${s.avg/5*100}%"></span></div>
+      <div class="val"><b>${s.count?s.avg.toFixed(1):'–'}</b> (${s.count})</div>
+    </div>`).join('');
+}
+
+/* ================= 설정 ================= */
+function renderSettings(){
+  const c=DB.config();
+  $('#panel').innerHTML=`
+    <div class="section-title">축제 설정</div>
+    <div class="card">
+      <div class="field"><label>축제 이름</label><input id="s-name" value="${esc(c.festivalName)}" /></div>
+      <div class="field"><label>교환권 조건 (도장 개수)</label><input id="s-goal" type="number" min="1" max="20" value="${c.couponGoal}" /></div>
+      <div class="field"><label>관리자 비밀번호</label><input id="s-pw" value="${esc(c.adminPw)}" /></div>
+      <button class="btn btn-primary btn-block" id="save-settings">저장</button>
+    </div>
+    <div class="section-title">위험 구역</div>
+    <div class="card">
+      <p class="muted" style="font-size:13px;margin-bottom:12px">부스·공지·별점·스탬프·교환권을 모두 초기 상태로 되돌려요.</p>
+      <button class="btn btn-danger btn-block" id="reset-all">전체 데이터 초기화</button>
+    </div>
+  `;
+  $('#save-settings').onclick=()=>{
+    const goal=Math.max(1,Math.min(20,Number($('#s-goal').value)||4));
+    const pw=$('#s-pw').value.trim()||'0000';
+    DB.setConfig({festivalName:$('#s-name').value.trim()||'우리 축제', couponGoal:goal, adminPw:pw});
+    $('#hdr-name').textContent=DB.config().festivalName;
+    alert('저장했어요.');
+  };
+  $('#reset-all').onclick=()=>{
+    if(confirm('정말 모든 데이터를 초기화할까요? 되돌릴 수 없어요.')){ DB.reset(); location.reload(); }
+  };
+}
+
+/* ---- 시작: 이미 로그인 상태면 바로 진입 ---- */
+if(DB.isAdmin()) showApp(); else $('#pw').focus();
+</script>
+</body>
+</html>
